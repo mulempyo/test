@@ -18,6 +18,24 @@ find_package(sensor_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)  
+find_package(CUDA REQUIRED)
+find_package(PCL REQUIRED)
+find_package(Eigen3 REQUIRED)
+
+set(G2O_INCLUDE_DIRS /usr/local/include)
+set(G2O_CORE_LIBRARY /usr/local/lib/libg2o_core.so)
+set(G2O_STUFF_LIBRARY /usr/local/lib/libg2o_stuff.so)
+set(G2O_SOLVER_PCG /usr/local/lib/libg2o_solver_pcg.so)
+set(G2O_SOLVER_CSPARSE /usr/local/lib/libg2o_solver_csparse.so)
+#set(G2O_SOLVER_CHOLMOD /usr/local/lib/libg2o_solver_cholmod.so)
+set(G2O_TYPES_SLAM2D /usr/local/lib/libg2o_types_slam2d.so)
+set(G2O_TYPES_SLAM2D_ADDONS /usr/local/lib/libg2o_types_slam2d_addons.so)
+
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} "-Xcompiler;-fPIC" CACHE STRING "nvcc flags" FORCE)
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} "--ftz=true;--prec-div=false;--prec-sqrt=false")
+set(CUDA_VERBOSE_BUILD ON CACHE BOOL "nvcc verbose" FORCE)
+cuda_add_library(icp_cuda_lib SHARED src/icp_cuda.cu)
+set_target_properties(icp_cuda_lib PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -28,6 +46,11 @@ endif()
 add_executable(cmd_vel_to_odom src/cmd_vel_to_odom.cpp)
 add_executable(odom_pub src/odom_pub.cpp)
 add_executable(sensor_monitor_node src/test.cpp)
+add_executable(tick_controller src/tick.cpp)
+add_executable(icp_compare_node 
+  src/relative.cpp
+  src/icp_wrapper.cpp
+)
 
 # Link the necessary ROS2 libraries to the executable
 ament_target_dependencies(cmd_vel_to_odom
@@ -57,6 +80,27 @@ ament_target_dependencies(sensor_monitor_node
   sensor_msgs
 )
 
+ament_target_dependencies(tick_controller
+  rclcpp
+  std_msgs
+  geometry_msgs
+)
+
+ament_target_dependencies(icp_compare_node
+  rclcpp 
+  sensor_msgs
+  nav_msgs
+  std_msgs
+  geometry_msgs
+)
+
+target_link_libraries(icp_compare_node
+  Eigen3::Eigen
+  ${PCL_LIBRARIES}
+  ${CUDA_LIBRARIES}
+  icp_cuda_lib
+)
+
 # Install the executable
 install(TARGETS cmd_vel_to_odom
   RUNTIME DESTINATION lib/${PROJECT_NAME})
@@ -66,6 +110,16 @@ install(TARGETS cmd_vel_to_odom
   
  install(TARGETS
   sensor_monitor_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(TARGETS
+  tick_controller
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(TARGETS
+  icp_compare_node
   DESTINATION lib/${PROJECT_NAME}
 )
   
