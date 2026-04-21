@@ -42,12 +42,18 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+include_directories(
+  ${PCL_INCLUDE_DIRS}
+  /usr/local/cuda-10.2/include
+  ${CUDA_INCLUDE_DIRS}
+)
+
 # Add the executable and specify dependencies
 add_executable(cmd_vel_to_odom src/cmd_vel_to_odom.cpp)
 add_executable(odom_pub src/odom_pub.cpp)
 add_executable(sensor_monitor_node src/test.cpp)
 add_executable(tick_controller src/tick.cpp)
-add_executable(icp_compare_node 
+add_executable(icp_compare_node
   src/relative.cpp
   src/icp_wrapper.cpp
 )
@@ -87,7 +93,7 @@ ament_target_dependencies(tick_controller
 )
 
 ament_target_dependencies(icp_compare_node
-  rclcpp 
+  rclcpp
   sensor_msgs
   nav_msgs
   std_msgs
@@ -104,10 +110,10 @@ target_link_libraries(icp_compare_node
 # Install the executable
 install(TARGETS cmd_vel_to_odom
   RUNTIME DESTINATION lib/${PROJECT_NAME})
-  
+ 
  install(TARGETS odom_pub
   RUNTIME DESTINATION lib/${PROJECT_NAME})
-  
+ 
  install(TARGETS
   sensor_monitor_node
   DESTINATION lib/${PROJECT_NAME}
@@ -120,9 +126,14 @@ install(TARGETS
 
 install(TARGETS
   icp_compare_node
-  DESTINATION lib/${PROJECT_NAME}
+  LIBRARY DESTINATION lib/${PROJECT_NAME}
 )
-  
+
+install(TARGETS
+  icp_cuda_lib
+  LIBRARY DESTINATION lib
+)
+ 
 install(
   DIRECTORY config/
   DESTINATION share/${PROJECT_NAME}/config
